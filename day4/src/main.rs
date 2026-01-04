@@ -36,22 +36,17 @@ fn part1(input: &str) -> i32 {
 }
 
 // Modified copy of `part1` which mutates input when removing rolls.
-fn part1_mut(input: &mut str) -> i32 {
-    // Convert line to 2D vector of chars.
-    let mut lines: Vec<Vec<char>> = input
-        .split('\n')
-        .map(|x| x.chars().collect::<Vec<char>>())
-        .collect();
+fn part1_mut(lines: &mut [Vec<char>]) -> usize {
     let y_max = lines.len() - 1;
-    let mut result = 0;
-    for (i, line) in lines.iter_mut().enumerate() {
-        let x_max = line.len() - 1;
-        for (j, ch) in line.iter_mut().enumerate() {
-            if *ch != '@' {
+    let mut removable_coords: Vec<(usize, usize)> = vec![];
+    for i in 0..=y_max {
+        let x_max = lines[i].len() - 1;
+        for j in 0..=x_max {
+            if lines[i][j] != '@' {
                 continue; // Not a roll of paper; skip.
             }
             let mut num_adjacent_rolls = 0;
-            // Iterate 9-char grid around ch.
+            // Iterate 9-char grid around lines[i][j].
             let top = max(i as i32 - 1, 0);
             let btm = min(i as i32 + 1, y_max as i32);
             for y in top..=btm {
@@ -63,25 +58,36 @@ fn part1_mut(input: &mut str) -> i32 {
                     }
                     if lines[y as usize][x as usize] == '@' {
                         num_adjacent_rolls += 1;
-                        *ch = '.'; // Remove the roll.
                     }
                 }
             }
             if num_adjacent_rolls < 4 {
-                result += 1;
+                removable_coords.push((i, j));
             }
         }
+    }
+    // After identifying, remove the rolls.
+    let result = removable_coords.len();
+    for (i, j) in removable_coords {
+        lines[i][j] = '.';
     }
     result
 }
 
-fn part2(input: &str) -> i32 {
-    let mut input_clone = String::from(input).clone();
-    let input_mut = input_clone.as_mut_str();
+// Convert multiline string to 2D vector of chars.
+fn str_to_char_vec(input: &str) -> Vec<Vec<char>> {
+    input
+        .split('\n')
+        .map(|x| x.chars().collect::<Vec<char>>())
+        .collect()
+}
+
+fn part2(input: &str) -> usize {
+    let mut lines: Vec<Vec<char>> = str_to_char_vec(input);
     let mut total = 0;
     loop {
-        let removed = part1_mut(input_mut);
-        if removed <= 0 {
+        let removed = part1_mut(&mut lines);
+        if removed == 0 {
             break;
         }
         total += removed;
@@ -91,8 +97,12 @@ fn part2(input: &str) -> i32 {
 
 fn main() {
     let input = fs::read_to_string("input.txt").unwrap();
+
     let part1_result = part1(&input);
     println!("part1 result: {}", part1_result);
+
+    let part2_result = part2(&input);
+    println!("part2 result: {}", part2_result);
 }
 
 #[cfg(test)]
@@ -120,14 +130,14 @@ mod tests {
 
     #[test]
     fn test_part1_mut() {
-        let mut input = String::from(TEST_INPUT).clone();
-        let result = part1_mut(input.as_mut_str());
+        let mut input = str_to_char_vec(TEST_INPUT);
+        let result = part1_mut(&mut input);
         assert_eq!(result, 13);
     }
 
     #[test]
     fn test_part2() {
-        let result = part1(TEST_INPUT);
+        let result = part2(TEST_INPUT);
         assert_eq!(result, 43);
     }
 }
